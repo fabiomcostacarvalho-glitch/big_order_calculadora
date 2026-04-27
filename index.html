@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Logística - Suporte</title>
+    <style>
+        :root { 
+            --primary: #2c3e50; 
+            --accent: #3498db; 
+            --success: #27ae60; 
+            --danger: #e74c3c; 
+            --warning: #f39c12;
+        }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f7f9; display: flex; justify-content: center; padding: 20px; }
+        .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 450px; width: 100%; }
+        h2 { color: var(--primary); text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 6px; border: 1px solid #eee; }
+        input[type="checkbox"] { width: auto; cursor: pointer; }
+        #result { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; display: none; min-height: 50px; }
+        
+        .status-approve { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-reject { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status-lead { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Validador de Ajuda (Split)</h2>
+
+    <div class="form-group">
+        <label>Veículo do Estafeta:</label>
+        <select id="vehicle" onchange="calculate()">
+            <option value="A PÉ">A Pé</option>
+            <option value="BICICLETA">Bicicleta</option>
+            <option value="MOTOCICLETA">Motocicleta</option>
+            <option value="CAR">Carro</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Peso Estimado (kg):</label>
+        <input type="number" id="weight" step="0.1" placeholder="Ex: 8.5" oninput="calculate()">
+    </div>
+
+    <div class="form-group">
+        <label>Número de Sacos:</label>
+        <input type="number" id="bags" placeholder="Total de volumes" oninput="calculate()">
+    </div>
+
+    <div class="form-group">
+        <label>Estafetas já em curso:</label>
+        <input type="number" id="currentCouriers" value="1" oninput="calculate()">
+    </div>
+
+    <div class="form-group checkbox-group">
+        <input type="checkbox" id="bigItems" onchange="calculate()">
+        <label style="margin:0">Contém itens de grandes dimensões?</label>
+    </div>
+
+    <div id="result"></div>
+</div>
+
+<script>
+    function calculate() {
+        const vehicle = document.getElementById('vehicle').value;
+        const weight = parseFloat(document.getElementById('weight').value) || 0;
+        const bags = parseInt(document.getElementById('bags').value) || 0;
+        const couriers = parseInt(document.getElementById('currentCouriers').value) || 1;
+        const hasBigItems = document.getElementById('bigItems').checked;
+        const resultDiv = document.getElementById('result');
+
+        resultDiv.style.display = "block";
+
+        // 1. REGRA ELIMINATÓRIA: Volume de sacos
+        if (bags <= 2) {
+            showResult("❌ REJEITAR AJUDA<br><small>Volume insuficiente (2 sacos ou menos).</small>", "status-reject");
+            return;
+        }
+
+        // 2. REGRA DE EFICIÊNCIA: Mínimo 2 sacos por pessoa
+        if ((bags / couriers) < 2) {
+            showResult("❌ REJEITAR AJUDA<br><small>Rácio insuficiente: Já existem estafetas suficientes para o volume.</small>", "status-reject");
+            return;
+        }
+
+        // 3. CÁLCULO BASE (Peso vs Veículo)
+        let weightThresholdExceeded = false;
+        if (vehicle === "A PÉ" && weight > 4.0) weightThresholdExceeded = true;
+        else if (vehicle === "BICICLETA" && weight > 9.0) weightThresholdExceeded = true;
+        else if (vehicle === "MOTOCICLETA" && weight > 12.0) weightThresholdExceeded = true;
+        else if (vehicle === "CAR" && weight > 15.0) weightThresholdExceeded = true;
+
+        // 4. LÓGICA DE DECISÃO FINAL
+        if (weightThresholdExceeded) {
+            showResult("✅ ADICIONAR 1 ESTAFETA<br><small>Peso excede a capacidade do veículo.</small>", "status-approve");
+        } 
+        else if (hasBigItems) {
+            // Caso o peso esteja ok, mas haja um item grande
+            showResult("⚠️ CONSULTAR LEAD<br><small>Peso dentro do limite, mas possui itens de grandes dimensões.</small>", "status-lead");
+        } 
+        else {
+            showResult("❌ REJEITAR AJUDA<br><small>Dentro dos parâmetros normais de transporte.</small>", "status-reject");
+        }
+    }
+
+    function showResult(text, className) {
+        const div = document.getElementById('result');
+        div.innerHTML = text;
+        div.className = className;
+    }
+</script>
+
+</body>
+</html>

@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Logística - Otimizada</title>
+    <title>Calculadora Logística - Unidade Moto</title>
     <style>
         :root { 
             --primary: #2c3e50; 
             --success: #27ae60; 
             --danger: #e74c3c; 
             --warning: #f39c12;
+            --info: #3498db;
         }
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f7f9; display: flex; justify-content: center; padding: 20px; }
         .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 450px; width: 100%; }
@@ -28,30 +29,30 @@
 <body>
 
 <div class="container">
-    <h2>Validador de Ajuda (v2.0)</h2>
+    <h2>Validador de Reforço (Base: Moto)</h2>
 
     <div class="form-group">
-        <label>Veículo dos Estafetas:</label>
+        <label>Veículo do 1º Estafeta:</label>
         <select id="vehicle" onchange="calculate()">
-            <option value="A PÉ">A Pé (Limite 4kg)</option>
-            <option value="BICICLETA">Bicicleta (Limite 9kg)</option>
-            <option value="MOTOCICLETA">Motocicleta (Limite 12kg)</option>
-            <option value="CAR">Carro (Limite 15kg)</option>
+            <option value="4">A Pé (4kg)</option>
+            <option value="9">Bicicleta (9kg)</option>
+            <option value="12">Motocicleta (12kg)</option>
+            <option value="15">Carro (15kg)</option>
         </select>
     </div>
 
     <div class="form-group">
-        <label>Peso Total (kg):</label>
-        <input type="number" id="weight" step="0.1" placeholder="Ex: 16" oninput="calculate()">
+        <label>Peso Total do Pedido (kg):</label>
+        <input type="number" id="weight" step="0.1" placeholder="Ex: 25" oninput="calculate()">
     </div>
 
     <div class="form-group">
-        <label>Nº de Sacos:</label>
-        <input type="number" id="bags" placeholder="Ex: 6" oninput="calculate()">
+        <label>Total de Sacos:</label>
+        <input type="number" id="bags" placeholder="Ex: 8" oninput="calculate()">
     </div>
 
     <div class="form-group">
-        <label>Estafetas JÁ no pedido:</label>
+        <label>Quantos estafetas estão lá agora?</label>
         <input type="number" id="currentCouriers" value="1" oninput="calculate()">
     </div>
 
@@ -65,48 +66,45 @@
 
 <script>
     function calculate() {
-        const vehicle = document.getElementById('vehicle').value;
+        const firstVehicleLimit = parseFloat(document.getElementById('vehicle').value);
         const weight = parseFloat(document.getElementById('weight').value) || 0;
         const bags = parseInt(document.getElementById('bags').value) || 0;
-        const couriers = parseInt(document.getElementById('currentCouriers').value) || 1;
+        const currentCouriers = parseInt(document.getElementById('currentCouriers').value) || 1;
         const hasBigItems = document.getElementById('bigItems').checked;
         const resultDiv = document.getElementById('result');
 
+        const MOTO_LIMIT = 12; // Unidade padrão de reforço
         resultDiv.style.display = "block";
 
-        // --- REGRA 1: FILTRO DE SACOS ---
+        // 1. REGRA ELIMINATÓRIA: Sacos
         if (bags <= 2) {
-            showResult("❌ REJEITAR AJUDA<br><small>Apenas 2 sacos ou menos.</small>", "status-reject");
+            showResult("❌ REJEITAR AJUDA<br><small>Volume de sacos (2 ou menos) não permite divisão.</small>", "status-reject");
             return;
         }
 
-        // --- REGRA 2: CAPACIDADE TÉCNICA ---
-        let limitPerV = 0;
-        if (vehicle === "A PÉ") limitPerV = 4;
-        else if (vehicle === "BICICLETA") limitPerV = 9;
-        else if (vehicle === "MOTOCICLETA") limitPerV = 12;
-        else if (vehicle === "CAR") limitPerV = 15;
+        // 2. CÁLCULO DE CAPACIDADE ATUAL
+        // O primeiro tem o limite do veículo dele, os subsequentes assumimos que são motos (12kg)
+        let capacityOfCurrentTeam = firstVehicleLimit + ((currentCouriers - 1) * MOTO_LIMIT);
 
-        let currentCapacity = limitPerV * couriers;
-
-        // --- REGRA 3: LÓGICA DE DECISÃO ---
-
-        // Se o que já temos de estafetas AGUENTA o peso
-        if (weight <= currentCapacity) {
-            // Caso especial: se o peso está ok mas tem item gigante
+        // 3. LÓGICA DE DECISÃO
+        if (weight <= capacityOfCurrentTeam) {
+            // Se o peso cabe nos que já estão lá
             if (hasBigItems) {
-                showResult("⚠️ CONSULTAR LEAD<br><small>Peso OK para "+couriers+" estafeta(s), mas há itens grandes.</small>", "status-lead");
+                showResult("⚠️ CONSULTAR LEAD<br><small>Peso OK para a equipa atual, mas há itens grandes.</small>", "status-lead");
             } else {
-                showResult("❌ REJEITAR AJUDA<br><small>Capacidade atual ("+currentCapacity+"kg) é suficiente para "+weight+"kg.</small>", "status-reject");
+                showResult("❌ REJEITAR AJUDA<br><small>A equipa atual suporta até "+capacityOfCurrentTeam+"kg. O pedido tem "+weight+"kg.</small>", "status-reject");
             }
         } 
         else {
-            // Se o peso EXCEDER a capacidade atual, verificamos se vale a pena adicionar
-            // Mas limitamos: se já temos 2 ou mais, e o rácio de sacos for baixo, não faz sentido 3º ou 4º
-            if (couriers >= 2 && (bags / (couriers + 1)) < 2) {
-                showResult("❌ REJEITAR AJUDA<br><small>Limite de estafetas atingido para este volume de sacos.</small>", "status-reject");
+            // Se o peso EXCEDER a capacidade
+            let excessWeight = weight - capacityOfCurrentTeam;
+            
+            // Verificamos se adicionar +1 moto mantém a eficiência de sacos
+            // Regra: Sacos / (Total de pessoas após adição) deve ser >= 2
+            if (bags / (currentCouriers + 1) < 2) {
+                showResult("❌ REJEITAR AJUDA<br><small>Peso excede, mas o número de sacos não permite mais divisões (Rácio < 2).</small>", "status-reject");
             } else {
-                showResult("✅ ADICIONAR +1 ESTAFETA<br><small>Peso atual excede o limite dos estafetas em curso.</small>", "status-approve");
+                showResult("✅ ADICIONAR +1 MOTO<br><small>Excesso de "+excessWeight.toFixed(1)+"kg detetado.</small>", "status-approve");
             }
         }
     }

@@ -3,53 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora Logística Pro</title>
+    <title>Risk Analyzer - Secure Interface</title>
     <style>
-        :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --warning: #f39c12; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f7f9; display: flex; justify-content: center; padding: 20px; }
-        .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 450px; width: 100%; }
-        h2 { color: var(--primary); text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 13px; color: #555; }
-        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
-        .info-table { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 12px; background: #fdfdfd; }
-        .info-table th, .info-table td { border: 1px solid #eee; padding: 8px; text-align: center; }
-        .info-table th { background: #f8f9fa; color: #666; }
-        #result { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; }
-        .status-approve { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .status-reject { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .status-lead { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-        .highlight { color: var(--danger); font-weight: bold; }
+        :root {
+            --high-risk: #e74c3c;
+            --med-risk: #f39c12;
+            --low-risk: #27ae60;
+        }
+        body { font-family: sans-serif; background: #f4f7f9; padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; width: 100%; max-width: 500px; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
+        input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 20px; background: #2c3e50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        
+        .risk-meter { height: 20px; background: #eee; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+        .risk-fill { height: 100%; width: 0%; transition: width 0.5s; }
+        
+        .insight-card { border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 6px; font-size: 14px; }
+        .alert { color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .bg-red { background: var(--high-risk); }
+        .bg-orange { background: var(--med-risk); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Validador Logístico</h2>
-
-    <div class="form-group">
-        <label>Veículo do 1º Estafeta:</label>
-        <select id="vehicle" onchange="calculate()">
-            <option value="4">A Pé (4kg)</option>
-            <option value="9">Bicicleta (9kg)</option>
-            <option value="12">Motocicleta (12kg)</option>
-            <option value="15">Carro (15kg)</option>
-        </select>
+    <h2>Analisador de Risco de Fraude</h2>
+    <div class="search-box">
+        <input type="text" id="userIdInput" placeholder="Inserir User ID...">
+        <button onclick="analyzeUser()">Analisar</button>
     </div>
 
-    <div class="form-group">
-        <label>Peso Total (kg):</label>
-        <input type="number" id="weight" step="0.1" placeholder="Ex: 20" oninput="calculate()">
-    </div>
+    <div id="results" class="hidden" style="display:none">
+        <div id="riskLevelText" style="font-weight: bold;">Nível de Risco: <span id="riskPercent">0%</span></div>
+        <div class="risk-meter"><div id="riskBar" class="risk-fill"></div></div>
 
-    <div class="form-group">
-        <label>Total de Sacos:</label>
-        <input type="number" id="bags" placeholder="Ex: 6" oninput="calculate()">
-    </div>
+        <div id="insights">
+            </div>
 
-    <div class="form-group">
-        <label>Estafetas JÁ no pedido:</label>
-        <input type="number" id="currentCouriers" value="1" oninput="calculate()">
+        <div id="decision-box" style="margin-top:20px; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold;">
+            </div>
     </div>
+</div>
 
-    <div class="form
+<script>
+    // Simulação de Base de Dados (Isso viria do seu Google Sheets via API)
+    const mockDatabase = {
+        "12345": { score: 85, alerts: ["Conta criada hoje", "Morada partilhada com conta banida", "Valor elevado"], orders: 1 },
+        "67890": { score: 15, alerts: ["Cliente recorrente", "Sem histórico de refunds"], orders: 45 }
+    };
+
+    function analyzeUser() {
+        const id = document.getElementById('userIdInput').value;
+        const data = mockDatabase[id];
+        const results = document.getElementById('results');
+        const insights = document.getElementById('insights');
+        const decision = document.getElementById('decision-box');
+        
+        if (data) {
+            results.style.display = 'block';
+            document.getElementById('riskPercent').innerText = data.score + "%";
+            const bar = document.getElementById('riskBar');
+            bar.style.width = data.score + "%";
+            bar.style.backgroundColor = data.score > 70 ? '#e74c3c' : (data.score > 40 ? '#f39c12' : '#27ae60');
+
+            insights.innerHTML = data.alerts.map(a => `<div class="insight-card">⚠️ ${a}</div>`).join('');
+            
+            if (data.score > 70) {
+                decision.style.backgroundColor = '#f8d7da';
+                decision.style.color = '#721c24';
+                decision.innerHTML = "PROIBIDO REEMBOLSAR: Risco de Fraude Elevado";
+            } else {
+                decision.style.backgroundColor = '#d4edda';
+                decision.style.color = '#155724';
+                decision.innerHTML = "OK: Seguir fluxo normal de validação";
+            }
+        } else {
+            alert("User ID não encontrado na base de dados de risco.");
+        }
+    }
+</script>
+</body>
+</html>
